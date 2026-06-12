@@ -46,6 +46,20 @@ The publish output is written to:
 src\DailyWingetNotify\bin\Release\net10.0-windows\win-x64\publish
 ```
 
+## GitHub Actions
+
+The repository contains GitHub Actions workflows for CI builds and releases:
+
+- `Build` runs on pushes, pull requests, and manual dispatch. It builds the project and publishes the Windows x64 Native AOT executable.
+- `Release` runs for tags matching `v*` or by manual dispatch with a tag name. It publishes the Native AOT executable and uploads `DailyWingetNotify.exe` as the release asset.
+
+Create a release from GitHub by pushing a version tag:
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ## Data
 
 DailyWingetNotify stores its small state file in:
@@ -59,4 +73,3 @@ Autostart is registered under:
 ```text
 HKCU\Software\Microsoft\Windows\CurrentVersion\Run
 ```
-

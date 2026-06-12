@@ -1,0 +1,58 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: 10.0.x
+  PROJECT_PATH: src/DailyWingetNotify/DailyWingetNotify.csproj
+  RUNTIME_IDENTIFIER: win-x64
+
+jobs:
+  build:
+    name: Build and publish Native AOT
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build
+        run: dotnet build $env:PROJECT_PATH -c Release
+
+      - name: Publish Native AOT
+        run: dotnet publish $env:PROJECT_PATH -c Release -r $env:RUNTIME_IDENTIFIER --self-contained true
+
+      - name: Collect executable
+        shell: pwsh
+        run: |
+          $publishDir = Join-Path "src/DailyWingetNotify/bin/Release/net10.0-windows/$env:RUNTIME_IDENTIFIER" "publish"
+          $exePath = Join-Path $publishDir "DailyWingetNotify.exe"
+          if (-not (Test-Path $exePath)) {
+            throw "Published executable not found at $exePath"
+          }
+
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          Copy-Item $exePath "artifacts/DailyWingetNotify.exe"
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DailyWingetNotify-win-x64
+          path: artifacts/DailyWingetNotify.exe
+          if-no-files-found: error
