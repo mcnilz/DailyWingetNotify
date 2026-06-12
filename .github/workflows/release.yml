@@ -36,7 +36,7 @@ jobs:
       - name: Publish Native AOT
         run: dotnet publish $env:PROJECT_PATH -c Release -r $env:RUNTIME_IDENTIFIER --self-contained true
 
-      - name: Collect executable
+      - name: Package executable
         shell: pwsh
         run: |
           $publishDir = Join-Path "src/DailyWingetNotify/bin/Release/net10.0-windows/$env:RUNTIME_IDENTIFIER" "publish"
@@ -46,7 +46,7 @@ jobs:
           }
 
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          Copy-Item $exePath "artifacts/DailyWingetNotify.exe"
+          Compress-Archive -Path $exePath -DestinationPath "artifacts/DailyWingetNotify-win-x64.zip" -Force
 
       - name: Create or update release
         shell: pwsh
@@ -59,7 +59,7 @@ jobs:
             throw "Release tag is required."
           }
 
-          $assetPath = "artifacts/DailyWingetNotify.exe"
+          $assetPath = "artifacts/DailyWingetNotify-win-x64.zip"
           if (gh release view $tagName --repo $env:GITHUB_REPOSITORY 2>$null) {
             gh release upload $tagName $assetPath --repo $env:GITHUB_REPOSITORY --clobber
           } else {

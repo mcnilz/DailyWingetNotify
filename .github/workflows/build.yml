@@ -38,7 +38,7 @@ jobs:
       - name: Publish Native AOT
         run: dotnet publish $env:PROJECT_PATH -c Release -r $env:RUNTIME_IDENTIFIER --self-contained true
 
-      - name: Collect executable
+      - name: Package executable
         shell: pwsh
         run: |
           $publishDir = Join-Path "src/DailyWingetNotify/bin/Release/net10.0-windows/$env:RUNTIME_IDENTIFIER" "publish"
@@ -48,11 +48,11 @@ jobs:
           }
 
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          Copy-Item $exePath "artifacts/DailyWingetNotify.exe"
+          Compress-Archive -Path $exePath -DestinationPath "artifacts/DailyWingetNotify-win-x64.zip" -Force
 
-      - name: Upload executable artifact
+      - name: Upload release package artifact
         uses: actions/upload-artifact@v6
         with:
           name: DailyWingetNotify-win-x64
-          path: artifacts/DailyWingetNotify.exe
+          path: artifacts/DailyWingetNotify-win-x64.zip
           if-no-files-found: error
