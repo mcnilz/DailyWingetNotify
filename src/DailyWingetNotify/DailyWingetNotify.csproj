@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>DailyWingetNotify</AssemblyName>
+    <RootNamespace>DailyWingetNotify</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishAot>true</PublishAot>
+    <PublishSingleFile>true</PublishSingleFile>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <TrimMode>full</TrimMode>
+    <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <NativeIntermediateOutputPath>$(TEMP)\DailyWingetNotify\native-int\$(Configuration)\$(RuntimeIdentifier)\</NativeIntermediateOutputPath>
+    <NativeOutputPath>$(TEMP)\DailyWingetNotify\native-out\$(Configuration)\$(RuntimeIdentifier)\</NativeOutputPath>
+  </PropertyGroup>
+</Project>
