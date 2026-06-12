@@ -15,6 +15,7 @@ permissions:
   contents: write
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   DOTNET_VERSION: 10.0.x
   PROJECT_PATH: src/DailyWingetNotify/DailyWingetNotify.csproj
   RUNTIME_IDENTIFIER: win-x64
