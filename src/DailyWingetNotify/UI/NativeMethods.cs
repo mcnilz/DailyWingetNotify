@@ -26,8 +26,13 @@ internal static partial class NativeMethods
     internal const int NiifInfo = 0x00000001;
     internal const int NiifWarning = 0x00000002;
     internal const int NiifError = 0x00000003;
+    internal const int NiifUser = 0x00000004;
+    internal const int NiifLargeIcon = 0x00000020;
     internal const int IconResourceId = 32512;
     internal const int BalloonTextLength = 255;
+    internal const uint ImageIcon = 1;
+    internal const uint LrDefaultSize = 0x00000040;
+    internal const uint LrShared = 0x00008000;
 
     internal const int MfString = 0x00000000;
     internal const int MfSeparator = 0x00000800;
@@ -161,6 +166,9 @@ internal static partial class NativeMethods
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     internal static extern IntPtr LoadIcon(IntPtr instance, IntPtr iconName);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    internal static extern IntPtr LoadImage(IntPtr instance, IntPtr name, uint type, int width, int height, uint load);
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     internal static extern IntPtr GetModuleHandle(string? moduleName);

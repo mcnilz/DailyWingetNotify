@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: Release tag, for example v1.0.0
+        description: SemVer release tag, for example v1.0.0 or v1.0.0-rc.1
         required: true
         type: string
 
@@ -32,6 +32,21 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Validate SemVer tag
+        shell: pwsh
+        env:
+          INPUT_TAG_NAME: ${{ inputs.tag_name }}
+        run: |
+          $tagName = if ($env:INPUT_TAG_NAME) { $env:INPUT_TAG_NAME } else { $env:GITHUB_REF_NAME }
+          if (-not $tagName) {
+            throw "Release tag is required."
+          }
+
+          $semVerPattern = '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-((0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$'
+          if ($tagName -notmatch $semVerPattern) {
+            throw "Release tag '$tagName' must follow SemVer, for example v1.2.3 or v1.2.3-rc.1."
+          }
 
       - name: Publish Native AOT
         run: dotnet publish $env:PROJECT_PATH -c Release -r $env:RUNTIME_IDENTIFIER --self-contained true
@@ -63,5 +78,23 @@ jobs:
           if (gh release view $tagName --repo $env:GITHUB_REPOSITORY 2>$null) {
             gh release upload $tagName $assetPath --repo $env:GITHUB_REPOSITORY --clobber
           } else {
-            gh release create $tagName $assetPath --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title $tagName --notes "DailyWingetNotify $tagName"
+            $releaseArgs = @(
+              "release",
+              "create",
+              $tagName,
+              $assetPath,
+              "--repo",
+              $env:GITHUB_REPOSITORY,
+              "--target",
+              $env:GITHUB_SHA,
+              "--title",
+              $tagName,
+              "--generate-notes"
+            )
+
+            if ($tagName -match '-') {
+              $releaseArgs += "--prerelease"
+            }
+
+            & gh @releaseArgs
           }

@@ -25,6 +25,18 @@ dotnet build .\src\DailyWingetNotify\DailyWingetNotify.csproj -c Release
 dotnet publish .\src\DailyWingetNotify\DailyWingetNotify.csproj -c Release -r win-x64
 ```
 
+## Versioning and Release Notes
+
+DailyWingetNotify uses Semantic Versioning for releases. Release tags must be prefixed with `v` and must follow SemVer, for example `v1.2.3` for a stable release or `v1.2.3-rc.1` for a prerelease.
+
+Choose version increments as follows:
+
+- Increment `MAJOR` for incompatible behavioral or operational changes.
+- Increment `MINOR` for backward-compatible features or meaningful UX improvements.
+- Increment `PATCH` for backward-compatible bug fixes, internal maintenance, and documentation-only release corrections.
+
+Every release must have release notes. The release workflow generates GitHub release notes from merged changes, so keep pull request titles concise and label changes with `breaking-change`, `enhancement`, `bug`, `maintenance`, `documentation`, or `dependencies` when possible.
+
 ## Manual Test Checklist
 
 - Launch the app and confirm no main window appears.

@@ -7,6 +7,8 @@ DailyWingetNotify is a small Windows 11 tray application that checks once per lo
 ## Development Guidelines
 
 - Keep application code, comments, documentation, identifiers, and commit messages in English.
+- Use Semantic Versioning for releases. Release tags must use SemVer with a leading `v`, for example `v1.2.3` or `v1.2.3-rc.1`.
+- Every release must have release notes. Prefer GitHub generated release notes and keep PR titles and labels clear enough to produce useful notes.
 - Prefer small services with explicit responsibilities over UI-heavy logic.
 - Keep the app dependency-light so Native AOT publishing remains predictable.
 - Preserve the tray-only UX: no main window, no startup splash, and no background console.
@@ -27,4 +29,3 @@ Manual checks:
 - Start the app and confirm only a tray icon appears.
 - Open the tray context menu and test `Check now`, `Install Autostart` / `Remove Autostart`, `About`, and `Exit`.
 - Confirm `winget upgrade --accept-source-agreements --disable-interactivity` works on the target machine.
-

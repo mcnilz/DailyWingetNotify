@@ -14,6 +14,7 @@ internal sealed class TrayApplication : IDisposable
     private readonly NativeMethods.WindowProcedure _windowProcedure;
     private IntPtr _windowHandle;
     private IntPtr _iconHandle;
+    private IntPtr _balloonIconHandle;
     private bool _isChecking;
     private bool _disposed;
 
@@ -234,6 +235,7 @@ internal sealed class TrayApplication : IDisposable
     private void AddTrayIcon()
     {
         _iconHandle = LoadApplicationIcon();
+        _balloonIconHandle = LoadApplicationIcon(32);
         var data = CreateNotifyIconData(NativeMethods.NifMessage | NativeMethods.NifIcon | NativeMethods.NifTip);
         data.Icon = _iconHandle;
         data.Tip = "DailyWingetNotify";
@@ -267,7 +269,16 @@ internal sealed class TrayApplication : IDisposable
         var data = CreateNotifyIconData(NativeMethods.NifInfo);
         data.InfoTitle = title;
         data.Info = text;
-        data.InfoFlags = icon;
+        if (_balloonIconHandle == IntPtr.Zero)
+        {
+            data.InfoFlags = icon;
+        }
+        else
+        {
+            data.InfoFlags = NativeMethods.NiifUser | NativeMethods.NiifLargeIcon;
+            data.BalloonIcon = _balloonIconHandle;
+        }
+
         NativeMethods.Shell_NotifyIcon(NativeMethods.NimModify, ref data);
     }
 
@@ -285,10 +296,16 @@ internal sealed class TrayApplication : IDisposable
 
     private string GetAutostartMenuText() => _autostartService.IsInstalled() ? "Remove Autostart" : "Install Autostart";
 
-    private static IntPtr LoadApplicationIcon()
+    private static IntPtr LoadApplicationIcon(int size = 0)
     {
         var module = NativeMethods.GetModuleHandle(null);
-        var icon = NativeMethods.LoadIcon(module, new IntPtr(NativeMethods.IconResourceId));
+        var icon = NativeMethods.LoadImage(
+            module,
+            new IntPtr(NativeMethods.IconResourceId),
+            NativeMethods.ImageIcon,
+            size,
+            size,
+            size == 0 ? NativeMethods.LrDefaultSize | NativeMethods.LrShared : NativeMethods.LrShared);
 
         return icon == IntPtr.Zero
             ? NativeMethods.LoadIcon(IntPtr.Zero, NativeMethods.IdiApplication)

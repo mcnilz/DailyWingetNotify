@@ -51,14 +51,16 @@ src\DailyWingetNotify\bin\Release\net10.0-windows\win-x64\publish
 The repository contains GitHub Actions workflows for CI builds and releases:
 
 - `Build` runs on pushes, pull requests, and manual dispatch. It builds the project and packages the Windows x64 Native AOT executable.
-- `Release` runs for tags matching `v*` or by manual dispatch with a tag name. It publishes the Native AOT executable and uploads `DailyWingetNotify-win-x64.zip` as the release asset.
+- `Release` runs for tags matching `v*` or by manual dispatch with a tag name. It validates that the tag follows Semantic Versioning, publishes the Native AOT executable, generates GitHub release notes, and uploads `DailyWingetNotify-win-x64.zip` as the release asset.
 
-Create a release from GitHub by pushing a version tag:
+Create a release from GitHub by pushing a SemVer tag with a leading `v`:
 
 ```powershell
 git tag v1.0.0
 git push origin v1.0.0
 ```
+
+Prereleases use normal SemVer prerelease tags, for example `v1.1.0-rc.1`. Keep pull request titles and labels clear because GitHub uses them to generate release notes.
 
 ## Data
 

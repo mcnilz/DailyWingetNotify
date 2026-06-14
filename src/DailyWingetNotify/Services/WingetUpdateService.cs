@@ -15,7 +15,7 @@ internal sealed partial class WingetUpdateService
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "winget",
-                    Arguments = "upgrade --accept-source-agreements --disable-interactivity --nowarn",
+                    Arguments = "upgrade --accept-source-agreements --disable-interactivity --nowarn --locale en-US",
                     CreateNoWindow = true,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -93,8 +93,6 @@ internal sealed partial class WingetUpdateService
         string.IsNullOrWhiteSpace(line)
         || line.Contains("upgrades available", StringComparison.OrdinalIgnoreCase)
         || line.Contains("upgrade available", StringComparison.OrdinalIgnoreCase)
-        || line.Contains("Aktualisierungen verfügbar", StringComparison.OrdinalIgnoreCase)
-        || line.Contains("Aktualisierung verfügbar", StringComparison.OrdinalIgnoreCase)
         || line.StartsWith("The following", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryParseUpdateLine(string line, out WingetUpdate update)
