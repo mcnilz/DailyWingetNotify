@@ -8,7 +8,8 @@ DailyWingetNotify is a small Windows 11 tray application that checks once per lo
 
 - Keep application code, comments, documentation, identifiers, and commit messages in English.
 - Use Semantic Versioning for releases. Release tags must use SemVer with a leading `v`, for example `v1.2.3` or `v1.2.3-rc.1`.
-- Every release must have release notes. Prefer GitHub generated release notes and keep PR titles and labels clear enough to produce useful notes.
+- Every release must have release notes. For release-relevant changes, add or update the next `docs/releases/vNEXT.md` release notes file before handoff.
+- Prefer GitHub generated release notes when no manual release notes file exists, and keep PR titles and labels clear enough to produce useful notes.
 - Prefer small services with explicit responsibilities over UI-heavy logic.
 - Keep the app dependency-light so Native AOT publishing remains predictable.
 - Preserve the tray-only UX: no main window, no startup splash, and no background console.

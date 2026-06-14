@@ -35,7 +35,9 @@ Choose version increments as follows:
 - Increment `MINOR` for backward-compatible features or meaningful UX improvements.
 - Increment `PATCH` for backward-compatible bug fixes, internal maintenance, and documentation-only release corrections.
 
-Every release must have release notes. The release workflow generates GitHub release notes from merged changes, so keep pull request titles concise and label changes with `breaking-change`, `enhancement`, `bug`, `maintenance`, `documentation`, or `dependencies` when possible.
+Every release must have release notes. Maintain manual release notes in `docs/releases/vNEXT.md` while preparing release-relevant changes, then rename the file to the final SemVer tag before creating the release. If no manual file exists for a tag, the release workflow falls back to GitHub generated release notes from merged changes, so keep pull request titles concise and label changes with `breaking-change`, `enhancement`, `bug`, `maintenance`, `documentation`, or `dependencies` when possible.
+
+Release builds embed the release tag in the executable. The About dialog reads `AssemblyInformationalVersion`, so a release tagged `v1.2.3` displays `DailyWingetNotify v1.2.3`. Local development builds use the project default `0.0.0-dev`.
 
 ## Manual Test Checklist
 

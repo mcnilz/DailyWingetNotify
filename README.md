@@ -25,7 +25,7 @@ The tray context menu contains:
 
 - `Check now`: immediately checks for available updates.
 - `Install Autostart` / `Remove Autostart`: toggles current-user startup registration.
-- `About`: shows version and license information.
+- `About`: shows release version and license information.
 - `Exit`: closes the application.
 
 ## Build

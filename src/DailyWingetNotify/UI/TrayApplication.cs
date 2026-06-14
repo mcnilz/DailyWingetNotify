@@ -1,3 +1,4 @@
+using System.Reflection;
 using DailyWingetNotify.Models;
 using DailyWingetNotify.Services;
 
@@ -163,7 +164,7 @@ internal sealed class TrayApplication : IDisposable
     {
         NativeMethods.MessageBox(
             _windowHandle,
-            "DailyWingetNotify\n\nChecks daily for winget updates.\nLicense: MIT",
+            $"DailyWingetNotify {GetApplicationVersion()}\n\nChecks daily for winget updates.\nLicense: MIT",
             "About DailyWingetNotify",
             0x00000040);
     }
@@ -295,6 +296,15 @@ internal sealed class TrayApplication : IDisposable
     };
 
     private string GetAutostartMenuText() => _autostartService.IsInstalled() ? "Remove Autostart" : "Install Autostart";
+
+    private static string GetApplicationVersion()
+    {
+        var version = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+
+        return string.IsNullOrWhiteSpace(version) ? "0.0.0-dev" : version;
+    }
 
     private static IntPtr LoadApplicationIcon(int size = 0)
     {

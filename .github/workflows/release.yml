@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag_name || github.ref }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -48,8 +50,22 @@ jobs:
             throw "Release tag '$tagName' must follow SemVer, for example v1.2.3 or v1.2.3-rc.1."
           }
 
+          $version = $tagName.Substring(1)
+          $numericVersion = ($version -split '[-+]')[0]
+          "RELEASE_TAG=$tagName" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_NUMERIC_VERSION=$numericVersion" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Publish Native AOT
-        run: dotnet publish $env:PROJECT_PATH -c Release -r $env:RUNTIME_IDENTIFIER --self-contained true
+        run: >
+          dotnet publish $env:PROJECT_PATH
+          -c Release
+          -r $env:RUNTIME_IDENTIFIER
+          --self-contained true
+          -p:Version=$env:RELEASE_VERSION
+          -p:FileVersion=$env:RELEASE_NUMERIC_VERSION.0
+          -p:AssemblyVersion=$env:RELEASE_NUMERIC_VERSION.0
+          -p:InformationalVersion=$env:RELEASE_TAG
 
       - name: Package executable
         shell: pwsh
