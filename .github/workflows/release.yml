@@ -75,7 +75,15 @@ jobs:
           }
 
           $assetPath = "artifacts/DailyWingetNotify-win-x64.zip"
+          $generatedNotes = gh api "repos/$env:GITHUB_REPOSITORY/releases/generate-notes" `
+            --method POST `
+            -f tag_name=$tagName `
+            | ConvertFrom-Json
+          $notesPath = "artifacts/release-notes.md"
+          $generatedNotes.body | Set-Content -Path $notesPath -Encoding utf8
+
           if (gh release view $tagName --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release edit $tagName --repo $env:GITHUB_REPOSITORY --title $tagName --notes-file $notesPath
             gh release upload $tagName $assetPath --repo $env:GITHUB_REPOSITORY --clobber
           } else {
             $releaseArgs = @(
@@ -89,7 +97,8 @@ jobs:
               $env:GITHUB_SHA,
               "--title",
               $tagName,
-              "--generate-notes"
+              "--notes-file",
+              $notesPath
             )
 
             if ($tagName -match '-') {
