@@ -1,0 +1,59 @@
+name: Sync Release Notes
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/sync-release-notes.yml
+      - docs/releases/v*.md
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Existing release tag to update, for example v1.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  sync-release-notes:
+    name: Sync release notes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Update GitHub release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG_NAME: ${{ inputs.tag_name }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${INPUT_TAG_NAME}" ]; then
+            tags="${INPUT_TAG_NAME}"
+          else
+            tags="$(find docs/releases -maxdepth 1 -type f -name 'v*.md' -printf '%f\n' | sed 's/\.md$//')"
+          fi
+
+          if [ -z "${tags}" ]; then
+            echo "No release notes found to sync."
+            exit 0
+          fi
+
+          for tag_name in ${tags}; do
+            notes_path="docs/releases/${tag_name}.md"
+            if [ ! -f "${notes_path}" ]; then
+              echo "Release notes file not found: ${notes_path}" >&2
+              exit 1
+            fi
+
+            echo "Updating release notes for ${tag_name}"
+            gh release edit "${tag_name}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${tag_name}" \
+              --notes-file "${notes_path}"
+          done
