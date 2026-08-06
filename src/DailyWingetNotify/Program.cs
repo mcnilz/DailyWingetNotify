@@ -20,9 +20,10 @@ internal static class Program
         var wingetUpdateService = new WingetUpdateService();
         var autostartService = new AutostartService(Environment.ProcessPath ?? AppContext.BaseDirectory);
         var systemLoadService = new SystemLoadService();
+        var userPresenceService = new UserPresenceService();
         var scheduler = new DailyCheckScheduler(stateStore, systemLoadService);
 
-        using var app = new TrayApplication(wingetUpdateService, autostartService, scheduler);
+        using var app = new TrayApplication(stateStore, wingetUpdateService, autostartService, scheduler, userPresenceService);
         app.Run();
     }
 }

@@ -4,25 +4,59 @@ using DailyWingetNotify.Models;
 
 namespace DailyWingetNotify.Services;
 
-internal sealed class StateStore
+internal sealed class StateStore(string filePath)
 {
-    private readonly string _filePath;
-
-    public StateStore(string filePath)
-    {
-        _filePath = filePath;
-    }
+    private readonly SemaphoreSlim _writeLock = new(1, 1);
 
     public AppState Load()
     {
-        if (!File.Exists(_filePath))
+        return LoadCore();
+    }
+
+    public async Task SaveCheckedLogicalDayAsync(DateOnly logicalDay, CancellationToken cancellationToken)
+    {
+        await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var state = LoadCore();
+            await SaveCoreAsync(
+                state with { LastCheckedLogicalDay = logicalDay },
+                cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    public async Task SavePendingNotificationAsync(
+        PendingNotificationState? pendingNotification,
+        CancellationToken cancellationToken)
+    {
+        await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var state = LoadCore();
+            await SaveCoreAsync(
+                state with { PendingNotification = pendingNotification },
+                cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    private AppState LoadCore()
+    {
+        if (!File.Exists(filePath))
         {
             return new AppState(null);
         }
 
         try
         {
-            var json = File.ReadAllText(_filePath);
+            var json = File.ReadAllText(filePath);
             return JsonSerializer.Deserialize(json, DailyWingetNotifyJsonContext.Default.AppState) ?? new AppState(null);
         }
         catch
@@ -33,13 +67,26 @@ internal sealed class StateStore
 
     public async Task SaveAsync(AppState state, CancellationToken cancellationToken)
     {
-        var directory = Path.GetDirectoryName(_filePath);
+        await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await SaveCoreAsync(state, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    private async Task SaveCoreAsync(AppState state, CancellationToken cancellationToken)
+    {
+        var directory = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrWhiteSpace(directory))
         {
             Directory.CreateDirectory(directory);
         }
 
-        await using var file = File.Create(_filePath);
+        await using var file = File.Create(filePath);
         await JsonSerializer.SerializeAsync(file, state, DailyWingetNotifyJsonContext.Default.AppState, cancellationToken).ConfigureAwait(false);
     }
 }

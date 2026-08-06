@@ -6,7 +6,7 @@ namespace DailyWingetNotify.Services;
 
 internal sealed partial class WingetUpdateService
 {
-    public async Task<WingetCheckResult> CheckForUpdatesAsync(CancellationToken cancellationToken)
+    public static async Task<WingetCheckResult> CheckForUpdatesAsync(CancellationToken cancellationToken)
     {
         try
         {

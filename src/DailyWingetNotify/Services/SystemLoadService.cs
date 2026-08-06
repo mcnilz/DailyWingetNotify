@@ -2,14 +2,14 @@ using System.Runtime.InteropServices;
 
 namespace DailyWingetNotify.Services;
 
-internal sealed class SystemLoadService
+internal sealed partial class SystemLoadService
 {
     private static readonly TimeSpan SampleDuration = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan RetryInterval = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan MaximumStartupDelay = TimeSpan.FromMinutes(15);
     private const double MaximumCpuUsage = 50;
 
-    public async Task WaitForLowCpuUsageAsync(CancellationToken cancellationToken)
+    public static async Task WaitForLowCpuUsageAsync(CancellationToken cancellationToken)
     {
         var deadline = DateTimeOffset.UtcNow.Add(MaximumStartupDelay);
 
@@ -79,6 +79,8 @@ internal sealed class SystemLoadService
         public uint HighDateTime;
     }
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool GetSystemTimes(out FileTime idleTime, out FileTime kernelTime, out FileTime userTime);
+    [LibraryImport("kernel32.dll", EntryPoint = "GetSystemTimesA", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+
+    private static partial bool GetSystemTimes(out FileTime idleTime, out FileTime kernelTime, out FileTime userTime);
 }

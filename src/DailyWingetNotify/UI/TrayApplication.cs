@@ -11,8 +11,10 @@ internal sealed class TrayApplication : IDisposable
     private readonly WingetUpdateService _wingetUpdateService;
     private readonly AutostartService _autostartService;
     private readonly DailyCheckScheduler _scheduler;
+    private readonly PendingNotificationService _pendingNotificationService;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly NativeMethods.WindowProcedure _windowProcedure;
+    private readonly object _checkLock = new();
     private IntPtr _windowHandle;
     private IntPtr _iconHandle;
     private IntPtr _balloonIconHandle;
@@ -20,13 +22,22 @@ internal sealed class TrayApplication : IDisposable
     private bool _disposed;
 
     public TrayApplication(
+        StateStore stateStore,
         WingetUpdateService wingetUpdateService,
         AutostartService autostartService,
-        DailyCheckScheduler scheduler)
+        DailyCheckScheduler scheduler,
+        UserPresenceService userPresenceService)
     {
+        ArgumentNullException.ThrowIfNull(stateStore);
+        ArgumentNullException.ThrowIfNull(wingetUpdateService);
+        ArgumentNullException.ThrowIfNull(autostartService);
+        ArgumentNullException.ThrowIfNull(scheduler);
+        ArgumentNullException.ThrowIfNull(userPresenceService);
+
         _wingetUpdateService = wingetUpdateService;
         _autostartService = autostartService;
         _scheduler = scheduler;
+        _pendingNotificationService = new PendingNotificationService(stateStore, userPresenceService, NotifyResult);
         _windowProcedure = WindowProcedure;
     }
 
@@ -34,6 +45,7 @@ internal sealed class TrayApplication : IDisposable
     {
         CreateMessageWindow();
         AddTrayIcon();
+        _pendingNotificationService.Start(_shutdown.Token);
         _scheduler.Start(CheckAndNotifyAsync, _autostartService.IsInstalled(), _shutdown.Token);
 
         while (NativeMethods.GetMessage(out var message, IntPtr.Zero, 0, 0) > 0)
@@ -52,6 +64,7 @@ internal sealed class TrayApplication : IDisposable
 
         _disposed = true;
         _shutdown.Cancel();
+        _pendingNotificationService.Dispose();
         _scheduler.Dispose();
         RemoveTrayIcon();
 
@@ -118,24 +131,53 @@ internal sealed class TrayApplication : IDisposable
         await _scheduler.RunManualCheckAsync(_shutdown.Token).ConfigureAwait(false);
     }
 
-    private async Task CheckAndNotifyAsync(CancellationToken cancellationToken)
+    private async Task CheckAndNotifyAsync(DateOnly logicalDay, CancellationToken cancellationToken)
     {
-        if (_isChecking)
+        if (!TryBeginCheck())
         {
             return;
         }
 
-        _isChecking = true;
         SetTrayTip("DailyWingetNotify - checking");
         try
         {
-            var result = await _wingetUpdateService.CheckForUpdatesAsync(cancellationToken).ConfigureAwait(false);
-            NotifyResult(result);
+            var result = await WingetUpdateService.CheckForUpdatesAsync(cancellationToken).ConfigureAwait(false);
+            await _pendingNotificationService.ShowOrDeferAsync(result, logicalDay, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            _isChecking = false;
+            EndCheck();
             SetTrayTip("DailyWingetNotify");
+        }
+    }
+
+    private bool TryBeginCheck()
+    {
+        lock (_checkLock)
+        {
+            if (_isChecking)
+            {
+                return false;
+            }
+
+            _isChecking = true;
+            return true;
+        }
+    }
+
+    private void EndCheck()
+    {
+        lock (_checkLock)
+        {
+            _isChecking = false;
+        }
+    }
+
+    private bool IsChecking()
+    {
+        lock (_checkLock)
+        {
+            return _isChecking;
         }
     }
 
@@ -145,7 +187,7 @@ internal sealed class TrayApplication : IDisposable
         {
             if (_autostartService.IsInstalled())
             {
-                _autostartService.Remove();
+                AutostartService.Remove();
                 ShowBalloon("Autostart removed", "DailyWingetNotify will no longer start with Windows.", NativeMethods.NiifInfo);
             }
             else
@@ -191,7 +233,7 @@ internal sealed class TrayApplication : IDisposable
         var menu = NativeMethods.CreatePopupMenu();
         try
         {
-            var checkFlags = _isChecking ? NativeMethods.MfString | NativeMethods.MfGrayed : NativeMethods.MfString;
+            var checkFlags = IsChecking() ? NativeMethods.MfString | NativeMethods.MfGrayed : NativeMethods.MfString;
             NativeMethods.AppendMenu(menu, (uint)checkFlags, NativeMethods.CmdCheckNow, "Check now");
             NativeMethods.AppendMenu(menu, NativeMethods.MfSeparator, 0, null);
             NativeMethods.AppendMenu(menu, NativeMethods.MfString, NativeMethods.CmdAutostart, GetAutostartMenuText());

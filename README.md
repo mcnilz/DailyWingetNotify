@@ -6,6 +6,7 @@ DailyWingetNotify is a small Windows 11 tray application that checks once per lo
 
 - Runs only in the Windows taskbar notification area.
 - Checks `winget upgrade` once per local day.
+- Waits for recent local user input before showing automatic check notifications.
 - Allows manual checks from the tray menu.
 - Shows a notification when updates are available.
 - Supports current-user autostart installation and removal.

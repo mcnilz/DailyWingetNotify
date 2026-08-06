@@ -1,5 +1,3 @@
-using DailyWingetNotify.Models;
-
 namespace DailyWingetNotify.Services;
 
 internal sealed class DailyCheckScheduler : IDisposable
@@ -8,24 +6,32 @@ internal sealed class DailyCheckScheduler : IDisposable
     private readonly StateStore _stateStore;
     private readonly SystemLoadService _systemLoadService;
     private readonly Timer _timer;
-    private Func<CancellationToken, Task>? _checkCallback;
+    private readonly Lock _checkLock = new();
+    private Func<DateOnly, CancellationToken, Task>? _checkCallback;
     private CancellationToken _cancellationToken;
     private bool _deferInitialCheckUntilLowCpuUsage;
     private bool _initialCheckDelayHandled;
     private bool _isRunning;
 
-    public DailyCheckScheduler(StateStore stateStore, SystemLoadService systemLoadService)
+    public DailyCheckScheduler(
+        StateStore stateStore,
+        SystemLoadService systemLoadService)
     {
+        ArgumentNullException.ThrowIfNull(stateStore);
+        ArgumentNullException.ThrowIfNull(systemLoadService);
+
         _stateStore = stateStore;
         _systemLoadService = systemLoadService;
         _timer = new Timer(OnTimerTick);
     }
 
     public void Start(
-        Func<CancellationToken, Task> checkCallback,
+        Func<DateOnly, CancellationToken, Task> checkCallback,
         bool deferInitialCheckUntilLowCpuUsage,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(checkCallback);
+
         _checkCallback = checkCallback;
         _deferInitialCheckUntilLowCpuUsage = deferInitialCheckUntilLowCpuUsage;
         _cancellationToken = cancellationToken;
@@ -34,7 +40,7 @@ internal sealed class DailyCheckScheduler : IDisposable
 
     public async Task RunManualCheckAsync(CancellationToken cancellationToken)
     {
-        await RunCheckAsync(markLogicalDay: true, cancellationToken).ConfigureAwait(false);
+        await RunCheckAndSaveLogicalDayAsync(GetLogicalDay(DateTimeOffset.Now), cancellationToken).ConfigureAwait(false);
     }
 
     public void Dispose()
@@ -47,15 +53,7 @@ internal sealed class DailyCheckScheduler : IDisposable
         _timer.Change(Timeout.Infinite, Timeout.Infinite);
         try
         {
-            if (ShouldRunDailyCheck(DateTimeOffset.Now))
-            {
-                await WaitForInitialCheckSlotAsync(_cancellationToken).ConfigureAwait(false);
-
-                if (ShouldRunDailyCheck(DateTimeOffset.Now))
-                {
-                    await RunCheckAsync(markLogicalDay: true, _cancellationToken).ConfigureAwait(false);
-                }
-            }
+            await RunDueCheckAsync(_cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -79,36 +77,71 @@ internal sealed class DailyCheckScheduler : IDisposable
         _initialCheckDelayHandled = true;
         if (_deferInitialCheckUntilLowCpuUsage)
         {
-            await _systemLoadService.WaitForLowCpuUsageAsync(cancellationToken).ConfigureAwait(false);
+            await SystemLoadService.WaitForLowCpuUsageAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task RunCheckAsync(bool markLogicalDay, CancellationToken cancellationToken)
+    private async Task RunDueCheckAsync(CancellationToken cancellationToken)
     {
-        if (_checkCallback is null || _isRunning)
+        var logicalDay = GetLogicalDay(DateTimeOffset.Now);
+        if (!ShouldRunDailyCheck(logicalDay))
         {
             return;
         }
 
-        _isRunning = true;
+        await WaitForInitialCheckSlotAsync(cancellationToken).ConfigureAwait(false);
+
+        logicalDay = GetLogicalDay(DateTimeOffset.Now);
+        if (ShouldRunDailyCheck(logicalDay))
+        {
+            await RunCheckAndSaveLogicalDayAsync(logicalDay, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task RunCheckAndSaveLogicalDayAsync(DateOnly logicalDay, CancellationToken cancellationToken)
+    {
+        if (_checkCallback is null || !TryBeginCheck())
+        {
+            return;
+        }
+
         try
         {
-            await _checkCallback(cancellationToken).ConfigureAwait(false);
-            if (markLogicalDay)
-            {
-                await _stateStore.SaveAsync(new AppState(GetLogicalDay(DateTimeOffset.Now)), cancellationToken).ConfigureAwait(false);
-            }
+            await _checkCallback(logicalDay, cancellationToken).ConfigureAwait(false);
+            await _stateStore.SaveCheckedLogicalDayAsync(logicalDay, cancellationToken).ConfigureAwait(false);
         }
         finally
+        {
+            EndCheck();
+        }
+    }
+
+    private bool TryBeginCheck()
+    {
+        lock (_checkLock)
+        {
+            if (_isRunning)
+            {
+                return false;
+            }
+
+            _isRunning = true;
+            return true;
+        }
+    }
+
+    private void EndCheck()
+    {
+        lock (_checkLock)
         {
             _isRunning = false;
         }
     }
 
-    private bool ShouldRunDailyCheck(DateTimeOffset now)
+    private bool ShouldRunDailyCheck(DateOnly logicalDay)
     {
         var state = _stateStore.Load();
-        return state.LastCheckedLogicalDay != GetLogicalDay(now);
+        return state.LastCheckedLogicalDay != logicalDay;
     }
 
     private static DateOnly GetLogicalDay(DateTimeOffset now)

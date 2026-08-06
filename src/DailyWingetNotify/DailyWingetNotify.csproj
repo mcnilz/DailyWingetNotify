@@ -25,5 +25,6 @@
     <DebugSymbols>false</DebugSymbols>
     <NativeIntermediateOutputPath>$(TEMP)\DailyWingetNotify\native-int\$(Configuration)\$(RuntimeIdentifier)\</NativeIntermediateOutputPath>
     <NativeOutputPath>$(TEMP)\DailyWingetNotify\native-out\$(Configuration)\$(RuntimeIdentifier)\</NativeOutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 </Project>
