@@ -7,7 +7,7 @@ internal sealed class DailyCheckScheduler : IDisposable
     private readonly SystemLoadService _systemLoadService;
     private readonly Timer _timer;
     private readonly Lock _checkLock = new();
-    private Func<DateOnly, CancellationToken, Task>? _checkCallback;
+    private Func<DateOnly, bool, CancellationToken, Task>? _checkCallback;
     private CancellationToken _cancellationToken;
     private bool _deferInitialCheckUntilLowCpuUsage;
     private bool _initialCheckDelayHandled;
@@ -26,7 +26,7 @@ internal sealed class DailyCheckScheduler : IDisposable
     }
 
     public void Start(
-        Func<DateOnly, CancellationToken, Task> checkCallback,
+        Func<DateOnly, bool, CancellationToken, Task> checkCallback,
         bool deferInitialCheckUntilLowCpuUsage,
         CancellationToken cancellationToken)
     {
@@ -40,7 +40,10 @@ internal sealed class DailyCheckScheduler : IDisposable
 
     public async Task RunManualCheckAsync(CancellationToken cancellationToken)
     {
-        await RunCheckAndSaveLogicalDayAsync(GetLogicalDay(DateTimeOffset.Now), cancellationToken).ConfigureAwait(false);
+        await RunCheckAndSaveLogicalDayAsync(
+            GetLogicalDay(DateTimeOffset.Now),
+            isManual: true,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public void Dispose()
@@ -94,11 +97,14 @@ internal sealed class DailyCheckScheduler : IDisposable
         logicalDay = GetLogicalDay(DateTimeOffset.Now);
         if (ShouldRunDailyCheck(logicalDay))
         {
-            await RunCheckAndSaveLogicalDayAsync(logicalDay, cancellationToken).ConfigureAwait(false);
+            await RunCheckAndSaveLogicalDayAsync(logicalDay, isManual: false, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task RunCheckAndSaveLogicalDayAsync(DateOnly logicalDay, CancellationToken cancellationToken)
+    private async Task RunCheckAndSaveLogicalDayAsync(
+        DateOnly logicalDay,
+        bool isManual,
+        CancellationToken cancellationToken)
     {
         if (_checkCallback is null || !TryBeginCheck())
         {
@@ -107,7 +113,7 @@ internal sealed class DailyCheckScheduler : IDisposable
 
         try
         {
-            await _checkCallback(logicalDay, cancellationToken).ConfigureAwait(false);
+            await _checkCallback(logicalDay, isManual, cancellationToken).ConfigureAwait(false);
             await _stateStore.SaveCheckedLogicalDayAsync(logicalDay, cancellationToken).ConfigureAwait(false);
         }
         finally

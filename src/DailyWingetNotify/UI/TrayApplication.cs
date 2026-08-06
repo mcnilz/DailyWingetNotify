@@ -128,10 +128,20 @@ internal sealed class TrayApplication : IDisposable
 
     private async Task RunManualCheckAsync()
     {
-        await _scheduler.RunManualCheckAsync(_shutdown.Token).ConfigureAwait(false);
+        try
+        {
+            await _scheduler.RunManualCheckAsync(_shutdown.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            ShowBalloon("winget check failed", exception.Message, NativeMethods.NiifError);
+        }
     }
 
-    private async Task CheckAndNotifyAsync(DateOnly logicalDay, CancellationToken cancellationToken)
+    private async Task CheckAndNotifyAsync(DateOnly logicalDay, bool isManual, CancellationToken cancellationToken)
     {
         if (!TryBeginCheck())
         {
@@ -142,7 +152,14 @@ internal sealed class TrayApplication : IDisposable
         try
         {
             var result = await WingetUpdateService.CheckForUpdatesAsync(cancellationToken).ConfigureAwait(false);
-            await _pendingNotificationService.ShowOrDeferAsync(result, logicalDay, cancellationToken).ConfigureAwait(false);
+            if (isManual)
+            {
+                await _pendingNotificationService.ShowImmediatelyAsync(result, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await _pendingNotificationService.ShowOrDeferAsync(result, logicalDay, cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {

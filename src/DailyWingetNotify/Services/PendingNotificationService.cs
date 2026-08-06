@@ -90,6 +90,22 @@ internal sealed class PendingNotificationService : IDisposable
         ScheduleRetry(RetryInterval);
     }
 
+    public async Task ShowImmediatelyAsync(WingetCheckResult result, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        if (IsDisposed())
+        {
+            return;
+        }
+
+        await ClearPendingNotificationAsync(cancellationToken).ConfigureAwait(false);
+        if (!IsDisposed())
+        {
+            _showNotification(result);
+        }
+    }
+
     public void Dispose()
     {
         lock (_stateLock)

@@ -1,13 +1,11 @@
 name: Sync Release Notes
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - .github/workflows/sync-release-notes.yml
-      - docs/releases/v*.md
-      - '!docs/releases/vNEXT.md'
+  workflow_run:
+    workflows:
+      - Release
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       tag_name:
@@ -21,6 +19,9 @@ permissions:
 jobs:
   sync-release-notes:
     name: Sync release notes
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     steps:

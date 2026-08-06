@@ -35,10 +35,10 @@ internal sealed partial class UserPresenceService
         public uint Time;
     }
 
-    [LibraryImport("user32.dll", EntryPoint = "GetLastInputInfoA", SetLastError = true)]
+    [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetLastInputInfo(ref LastInputInfo lastInputInfo);
 
-    [LibraryImport("kernel32.dll", EntryPoint = "GetTickCount64A")]
+    [LibraryImport("kernel32.dll")]
     private static partial ulong GetTickCount64();
 }
