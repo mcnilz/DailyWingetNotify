@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/sync-release-notes.yml
       - docs/releases/v*.md
+      - '!docs/releases/vNEXT.md'
   workflow_dispatch:
     inputs:
       tag_name:
@@ -36,7 +37,7 @@ jobs:
           if [ -n "${INPUT_TAG_NAME}" ]; then
             tags="${INPUT_TAG_NAME}"
           else
-            tags="$(find docs/releases -maxdepth 1 -type f -name 'v*.md' -printf '%f\n' | sed 's/\.md$//')"
+            tags="$(find docs/releases -maxdepth 1 -type f -name 'v*.md' ! -name 'vNEXT.md' -printf '%f\n' | sed 's/\.md$//')"
           fi
 
           if [ -z "${tags}" ]; then
