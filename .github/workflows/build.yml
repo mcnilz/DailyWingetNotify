@@ -55,7 +55,7 @@ jobs:
           Compress-Archive -Path $exePath -DestinationPath "artifacts/DailyWingetNotify-win-x64.zip" -Force
 
       - name: Upload release package artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: DailyWingetNotify-win-x64
           path: artifacts/DailyWingetNotify-win-x64.zip
